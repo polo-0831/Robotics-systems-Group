@@ -5,7 +5,7 @@
 #include "Kinematics.h"
 #include "Magnetometer.h"
 
-// ¶¨Òå½á¹¹Ìå
+// ï¿½ï¿½ï¿½ï¿½á¹¹ï¿½ï¿½
 Motors_c motors;
 LineSensors_c line_sensors;
 Kinematics_c pose;
@@ -14,10 +14,10 @@ Magnetometer_c magnetometer;
 PID_c left_pid;
 PID_c right_pid;
 
-// ºê¶¨Òå
+// ï¿½ê¶¨ï¿½ï¿½
 #define BUZZER_PIN 6
-#define LEFT 1  // ×ó×ª
-#define RIGHT 2 // ÓÒ×ª
+#define LEFT 1  // ï¿½ï¿½×ª
+#define RIGHT 2 // ï¿½ï¿½×ª
 #define GOXY_THRESHOLD 40
 
 // FSM state
@@ -27,18 +27,19 @@ PID_c right_pid;
 #define STATE_STOP 4
 int state = STATE_TASK;
 
-// CHECK²¿·ÖµÄ±äÁ¿¶¨Òå
+// CHECKï¿½ï¿½ï¿½ÖµÄ±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 #define TURN_CHECK 0
 #define GOXY_CHECK 1
 int check_flag = TURN_CHECK;
 
-// ×ËÌ¬¿ØÖÆÐèÒªµÄÈ«¾Ö±äÁ¿
-float l_pwm, r_pwm;
-float target_angle; // ÓÃÓÚcheckTurnAngleÄÚ¼ìÑéÊÇ·ñ×ªµ½Ä¿±ê½Ç¶È
-int target_turn_direction;
-float target_x, target_y; // ÓÃÓÚcheckGOXYÄÚ¼ì²âÊÇ·ñµ½Ä¿±êµã
 
-// ±àÂëÆ÷Ïà¹Ø±äÁ¿
+// ï¿½ï¿½Ì¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½
+float l_pwm, r_pwm;
+float target_angle; // ï¿½ï¿½ï¿½ï¿½checkTurnAngleï¿½Ú¼ï¿½ï¿½ï¿½ï¿½Ç·ï¿½×ªï¿½ï¿½Ä¿ï¿½ï¿½Ç¶ï¿½
+int target_turn_direction;
+float target_x, target_y; // ï¿½ï¿½ï¿½ï¿½checkGOXYï¿½Ú¼ï¿½ï¿½ï¿½Ç·ï¿½Ä¿ï¿½ï¿½ï¿½
+
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø±ï¿½ï¿½ï¿½
 long last_e0;
 long last_e1;
 long Encoder_prevTime = 0;
@@ -49,20 +50,20 @@ float St1 = 0.0;
 float previSt0 = 0.0;
 float previSt1 = 0.0;
 float a = 0.1; // parameter of low pass filter
-float demand;  // velocity demand
+float demand = 0.0;  // velocity demand
 
-// Ê±¼ä²ÎÊý
+// Ê±ï¿½ï¿½ï¿½ï¿½ï¿½
 unsigned long elapsed_time;
 
 unsigned long beep_stop_time;
 unsigned long turn_stop_time;
 
-// debugµ÷ÊÔËùÐèÒªµÄ±äÁ¿
+// debugï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ä±ï¿½ï¿½ï¿½
 int mode = 1;
 
 void setup()
 {
-  // ±àÂëÆ÷³õÊ¼»¯
+  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½
   setupEncoder0();
   setupEncoder1();
   last_e0 = count_e0;
@@ -71,8 +72,7 @@ void setup()
   // PID
   left_pid.initialise(5.5, 0.05, 0.5);  // pid initialise ( 13.0, 0.2, 0.0 ) respond would be faster but too strong
   right_pid.initialise(5.5, 0.05, 0.5); // pid initialise ( 13.0, 0.2, 0.0 ) respond would be faster but too strong
-  left_pid.reset();
-  right_pid.reset();
+
   // BUZZER
   pinMode(BUZZER_PIN, OUTPUT);
 
@@ -88,19 +88,22 @@ void setup()
   delay(2000);
   Serial.println(" *** READY *** ");
 
-  // ³õÊ¼»¯Ò»Ð©Ê±¼ä±äÁ¿
+  // ï¿½ï¿½Ê¼ï¿½ï¿½Ò»Ð©Ê±ï¿½ï¿½ï¿½ï¿½ï¿½
   elapsed_time = millis();
+  
+  left_pid.reset(); // reset pid after any delay if you set a non-zero i_gain.
+  right_pid.reset();
 }
 
 void loop()
 {
-  // ´«¸ÐÆ÷Êý¾Ý¸üÐÂ
+  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¸ï¿½ï¿½ï¿½
   pose.update();
   // mag.read();
   // line_sensors.calcReadingADC();
   // magnetometer.calcReadingMeg();
 
-  // ±àÂëÆ÷¼ÆËã
+  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
   calcEncoder();
 
   switch (state)
@@ -115,18 +118,18 @@ void loop()
     }
     if (check_flag == GOXY_CHECK)
     {
-      if (checkTurnAngle() == false) // ×ª½Ç¶ÈÍê³ÉÁË
+      if (checkTurnAngle() == false) // ×ªï¿½Ç¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
       {
         demand = 5;
         l_pwm = left_pid.update(demand, St1 * 10);
         r_pwm = right_pid.update(demand, St0 * 10);
-        motors.setPWM(25, 25);    // ÕâÀïÎÒÏÈ²»¼ÓPID£¬ÎÒ³¢ÊÔÁË¼ÓÉÏÈ¥£¬µ«²ÎÊý²»¶Ô×ßµÄºÜ¹Ö
-        if (checkGoXY() == false) // Õâ¸ö¶¯×÷Íê³ÉÁË
+        motors.setPWM(25, 25);    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È²ï¿½ï¿½ï¿½PIDï¿½ï¿½ï¿½Ò³ï¿½ï¿½ï¿½ï¿½Ë¼ï¿½ï¿½ï¿½È¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ßµÄºÜ¹ï¿½
+        if (checkGoXY() == false) // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         {
           state = STATE_TASK;
         }
       }
-      else // Î´Íê³É½Ç¶ÈÐý×ª»òÕßgoing xyµÄÍ¬Ê±Æ«ÀëÁËÄ¿±ê½Ç¶È£¬¶¼»áÔÚÕâÀïÐÞÕý
+      else // Î´ï¿½ï¿½É½Ç¶ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½ï¿½going xyï¿½ï¿½Í¬Ê±Æ«ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½Ç¶È£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
       {
         setTurnAngle(target_angle);
       }
@@ -169,7 +172,7 @@ void loop()
     motors.setPWM(0, 0);
     break;
   }
-  checkBeep(); // ·äÃùÆ÷µÄsetºÍcheck¸úÎÒÃÇµÄFSMÎÞ¹Ø£¬ËùÒÔ°Ñcheck·ÅÍâÃæÁË
+  checkBeep(); // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½setï¿½ï¿½checkï¿½ï¿½ï¿½ï¿½ï¿½Çµï¿½FSMï¿½Þ¹Ø£ï¿½ï¿½ï¿½ï¿½Ô°ï¿½checkï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
   Serial.print(demand);
   Serial.print(",");
@@ -185,7 +188,7 @@ void loop()
 void setBeep(unsigned long duration_ms)
 {
   beep_stop_time = millis() + duration_ms;
-  analogWrite(BUZZER_PIN, 150);
+  analogWrite(BUZZER_PIN, 2);
 }
 bool checkBeep()
 {
@@ -224,7 +227,7 @@ void calcEncoder()
   }
 }
 
-void setTurn(int direction, float speed, unsigned long duration_ms)
+void setTurn(int direction, float speed, unsigned long duration_ms) // This function doesn't seem to be called.
 {
   turn_stop_time = millis() + duration_ms;
   if (direction == LEFT)

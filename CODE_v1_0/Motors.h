@@ -61,8 +61,8 @@ class Motors_c {
       // values, e.g. analogWrite( <pin>, < 0 : 255 > );
       // Which pins will take a value in range [0:255]?
       // What purpose do they serve?
-       analogWrite( L_PWM , 20 );
-       analogWrite( R_PWM , 20 );
+       analogWrite( L_PWM , 0 ); // it should be zero at the start.
+       analogWrite( R_PWM , 0 );
 
     } // End of initialise()
 
