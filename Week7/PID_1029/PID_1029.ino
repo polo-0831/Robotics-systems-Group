@@ -41,9 +41,10 @@ void setup() {
   St1 = 0.0;
   previSt0 = 0.0;
   previSt1 = 0.0;
-  left_pid.initialise( 5.5, 0.05, 0.5 ); //pid initialise ( 13.0, 0.2, 0.0 ) respond would be faster but too strong
-  right_pid.initialise( 5.5, 0.05, 0.5 ); //pid initialise ( 13.0, 0.2, 0.0 ) respond would be faster but too strong
+  left_pid.initialise( 5.5, 0.02, 0.0 ); //pid initialise ( 13.0, 0.2, 0.0 ) respond would be faster but too strong
+  right_pid.initialise( 5.5, 0.02, 0.0 ); //pid initialise ( 13.0, 0.2, 0.0 ) respond would be faster but too strong
   test_ts = millis(); // Prepare our testing timestamp
+  delay(8000);
   left_pid.reset();
   right_pid.reset();
 }
@@ -51,9 +52,8 @@ void setup() {
 void loop() {
 
   
-  PID_update_priviTime = 0;
   unsigned long Encoder_dt_currenTime = millis();
-  if( Encoder_dt_currenTime - Encoder_dt_previTime > 10 ) {
+  if( Encoder_dt_currenTime - Encoder_dt_previTime > 20 ) {
     long dt = Encoder_dt_currenTime - Encoder_dt_previTime;
     if (dt == 0) {
       return;
