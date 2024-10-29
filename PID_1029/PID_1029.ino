@@ -8,23 +8,26 @@ PID_c right_pid;
 
 #define SPEED_EST_MS 10 // estimate speed every 10ms
 #define TEST_MS 2000
-unsigned long speed_est_ts; // timestamp for speed estimation
-bool isTurning = false; 
-unsigned long test_ts;
-unsigned long pid_update_TIME;
 
+bool isTurning = false; 
+
+//PID
+unsigned long speed_est_ts;
+unsigned long test_ts;
+unsigned long PID_update_priviTime;
+float a = 0.1; // parameter of low pass filter
+float demand = 10; // velocity demand
+
+//Encoder
+unsigned long Encoder_dt_previTime = 0; 
 long last_e0;
 long last_e1;
-long previTime = 0; 
-
 float speed_e0;
 float speed_e1;
 float St0;
 float St1;
 float previSt0;
 float previSt1;
-float a = 0.1; // parameter of low pass filter
-float demand = 10; // velocity demand
 
 void setup() {
   Serial.begin(9600);
@@ -48,10 +51,10 @@ void setup() {
 void loop() {
 
   
-  pid_update_TIME = 0;
-  unsigned long currenTime = millis();
-  if( currenTime - previTime > 10 ) {
-    long dt = currenTime - previTime;
+  PID_update_priviTime = 0;
+  unsigned long Encoder_dt_currenTime = millis();
+  if( Encoder_dt_currenTime - Encoder_dt_previTime > 10 ) {
+    long dt = Encoder_dt_currenTime - Encoder_dt_previTime;
     if (dt == 0) {
       return;
     }
@@ -63,7 +66,7 @@ void loop() {
     speed_e1 = (float)count_difference1 / (float)dt;
     St0 = (float)(a * speed_e0) + (float)((1.0 - a) * previSt0);
     St1 = (float)(a * speed_e1) + (float)((1.0 - a) * previSt1);
-    previTime = currenTime;
+    Encoder_dt_previTime = Encoder_dt_currenTime;
     previSt0 = St0;
     previSt1 = St1;
     //Serial.print( speed_e0 * 60000 / 358.3 , 4 ); // chaging speed unit to rpm
@@ -80,12 +83,12 @@ void loop() {
 
 
 
-
-    if(millis() - pid_update_TIME > 30){
+      unsigned long PID_update_currenTime = millis();
+    if(PID_update_currenTime - PID_update_priviTime > 30){
       float l_pwm = left_pid.update( demand, St1*10 ); 
       float r_pwm = right_pid.update( demand, St0*10 );
       motors.setPWM( l_pwm, r_pwm );
-      pid_update_TIME = millis();
+      PID_update_priviTime = PID_update_currenTime;
       Serial.print( demand );
       Serial.print( "," );
       Serial.print( St0*10 );
