@@ -2,26 +2,20 @@
 #include "encoders.h"'
 #include "PID.h"
 
-Motors_c motors;
-PID_c left_pid;
+Motors_c motors; 
+PID_c left_pid; 
 PID_c right_pid;
 
 #define SPEED_EST_MS 10 // estimate speed every 10ms
 #define TEST_MS 2000
-#define STATE_START   0  
-#define STATE_START2   1  
-
 unsigned long speed_est_ts; // timestamp for speed estimation
-bool isTurning = false;
+bool isTurning = false; 
 unsigned long test_ts;
 unsigned long pid_update_TIME;
-unsigned long TurningTime;
-
-int state;
 
 long last_e0;
 long last_e1;
-long previTime = 0;
+long previTime = 0; 
 
 float speed_e0;
 float speed_e1;
@@ -30,7 +24,7 @@ float St1;
 float previSt0;
 float previSt1;
 float a = 0.1; // parameter of low pass filter
-float demand; // velocity demand
+float demand = 10; // velocity demand
 
 void setup() {
   Serial.begin(9600);
@@ -49,12 +43,11 @@ void setup() {
   test_ts = millis(); // Prepare our testing timestamp
   left_pid.reset();
   right_pid.reset();
-  state = STATE_START;
 }
 
 void loop() {
 
-
+  
   pid_update_TIME = 0;
   unsigned long currenTime = millis();
   if( currenTime - previTime > 10 ) {
@@ -62,7 +55,7 @@ void loop() {
     if (dt == 0) {
       return;
     }
-    long count_difference0 = count_e0 - last_e0;
+    long count_difference0 = count_e0 - last_e0; 
     long count_difference1 = count_e1 -last_e1;
     last_e0 = count_e0;
     last_e1 = count_e1;
@@ -80,42 +73,24 @@ void loop() {
 
 
 
-  //   if( millis() - test_ts > TEST_MS ) {
-  //    test_ts = millis();
-  //    demand = demand * -1.0;
-  //  } // changing damand to positive or netative to test the performance PID controller
-  
-  
-  if(millis() - pid_update_TIME > 30){
-    float l_pwm = left_pid.update( demand, St1*10 );
-    float r_pwm = right_pid.update( demand, St0*10 );
-    motors.setPWM( l_pwm, r_pwm );
-    pid_update_TIME = millis();
-    Serial.print( demand );
-    Serial.print( "," );
-    Serial.print( St0*10 );
-    Serial.print( "," );
-    Serial.print( St1*10 );
-    Serial.print( "\n" );
-  }
+//   if( millis() - test_ts > TEST_MS ) { 
+//    test_ts = millis();
+//    demand = demand * -1.0;
+//  } // changing damand to positive or netative to test the performance PID controller
 
-  
+
+
+
+    if(millis() - pid_update_TIME > 30){
+      float l_pwm = left_pid.update( demand, St1*10 ); 
+      float r_pwm = right_pid.update( demand, St0*10 );
+      motors.setPWM( l_pwm, r_pwm );
+      pid_update_TIME = millis();
+      Serial.print( demand );
+      Serial.print( "," );
+      Serial.print( St0*10 );
+      Serial.print( "," );
+      Serial.print( St1*10 );
+      Serial.print( "\n" );
+    }
 }
-
-
-void setForward(unsigned long duration_ms, int demand_set){
-  TurningTime = millis() + duration_ms;
-  demand = demand_set;
-  isTurning = true;
-} // End of setForward()
-
-
-bool checkTurn() {
-  if (isTurning && millis() >= TurningTime) {
-    demand = 0;
-    motors.setPWM(0, 0);
-    isTurning = false;
-    return false;
-  }
-  return true;
-} // End of checkTurn()
