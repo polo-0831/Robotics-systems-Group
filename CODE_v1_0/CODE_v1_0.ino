@@ -54,9 +54,11 @@ float demand = 0.0;  // velocity demand
 
 // ʱ�����
 unsigned long elapsed_time;
-
 unsigned long beep_stop_time;
 unsigned long turn_stop_time;
+
+// pose update internal
+const unsigned long updateInterval = 20;
 
 // debug��������Ҫ�ı���
 int mode = 1;
@@ -98,7 +100,11 @@ void setup()
 void loop()
 {
   // ���������ݸ���
-  pose.update();
+  unsigned long Kinematics_currentTime = millis();
+  if( Kinematics_currentTime - Kinematics_previousTime >= Kinematics_interval){
+    pose.update();
+    Kinematics_previousTime = Kinematics_currentTime;
+  }
   // mag.read();
   // line_sensors.calcReadingADC();
   // magnetometer.calcReadingMeg();
@@ -123,7 +129,11 @@ void loop()
         demand = 5;
         l_pwm = left_pid.update(demand, St1 * 10);
         r_pwm = right_pid.update(demand, St0 * 10);
-        motors.setPWM(25, 25);    // �������Ȳ���PID���ҳ����˼���ȥ�������������ߵĺܹ�
+        
+        //motors.setPWM(25, 25); 
+        // i think we dont need this here cuz we've already have demand
+        
+        // �������Ȳ���PID���ҳ����˼���ȥ�������������ߵĺܹ�
         if (checkGoXY() == false) // ������������
         {
           state = STATE_TASK;
@@ -203,9 +213,11 @@ bool checkBeep()
 
 void calcEncoder()
 {
-  if (millis() - Encoder_prevTime > 10)
+  pid_update_TIME = 0;
+  unsigned long Encoder_currenTime = millis();
+  if (Encoder_currenTime - Encoder_prevTime > 10)
   {
-    long dt = millis() - Encoder_prevTime;
+    long dt = Encoder_currenTime - Encoder_prevTime;
     if (dt == 0)
     {
       return;
@@ -218,7 +230,7 @@ void calcEncoder()
     speed_e1 = (float)count_difference1 / (float)dt;
     St0 = (float)(a * speed_e0) + (float)((1.0 - a) * previSt0);
     St1 = (float)(a * speed_e1) + (float)((1.0 - a) * previSt1);
-    Encoder_prevTime = millis();
+    Encoder_prevTime = Encoder_currenTime;
     previSt0 = St0;
     previSt1 = St1;
     // Serial.print( speed_e0 * 60000 / 358.3 , 4 ); // chaging speed unit to rpm

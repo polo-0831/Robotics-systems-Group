@@ -8,11 +8,16 @@ PID_c right_pid;
 
 #define SPEED_EST_MS 10 // estimate speed every 10ms
 #define TEST_MS 2000
+#define STATE_START   0  
+#define STATE_START2   1  
+
 unsigned long speed_est_ts; // timestamp for speed estimation
 bool isTurning = false;
 unsigned long test_ts;
 unsigned long pid_update_TIME;
 unsigned long TurningTime;
+
+int state;
 
 long last_e0;
 long last_e1;
@@ -44,6 +49,7 @@ void setup() {
   test_ts = millis(); // Prepare our testing timestamp
   left_pid.reset();
   right_pid.reset();
+  state = STATE_START;
 }
 
 void loop() {
@@ -78,10 +84,8 @@ void loop() {
   //    test_ts = millis();
   //    demand = demand * -1.0;
   //  } // changing damand to positive or netative to test the performance PID controller
-
-  setForward(4000, 5);
-
-
+  
+  
   if(millis() - pid_update_TIME > 30){
     float l_pwm = left_pid.update( demand, St1*10 );
     float r_pwm = right_pid.update( demand, St0*10 );
@@ -94,12 +98,14 @@ void loop() {
     Serial.print( St1*10 );
     Serial.print( "\n" );
   }
+
+  
 }
 
 
 void setForward(unsigned long duration_ms, int demand_set){
   TurningTime = millis() + duration_ms;
-  demand_set = demand;
+  demand = demand_set;
   isTurning = true;
 } // End of setForward()
 
