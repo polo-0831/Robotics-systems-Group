@@ -60,7 +60,6 @@ void setup() {
 //  PID_Turning = true;
   test_ts = millis(); // Prepare our testing timestamp
 
-
   //pose initialise
   setupEncoder0();
   setupEncoder1();
@@ -74,7 +73,7 @@ void setup() {
   Serial.println("***RESET***");
   setupTimer3(); 
 
-  
+  // must put this at the end of setup
   delay(2000);
   left_pid.reset();
   right_pid.reset();
@@ -128,6 +127,7 @@ void encoder_Cal(){
     //Serial.println( St * 60000 / 358.3 , 4 ); //rpm // chaging speed unit to rpm
   
 }
+
 void pid(){
 
       float l_pwm = left_pid.update( demand, St1*10 ); 
@@ -187,15 +187,18 @@ int count = 0;
 ISR( TIMER3_COMPA_vect ) {
   
   count++;
-  
+
+  // call encoder
   encoder_Cal();
-  
+
+  // PID 
   if (count % 3 == 0){
     if (PID_Turning){
       pid();
       }
   }
 
+  // position update
   if (count % 2 == 0){
     pose.update();
   }
