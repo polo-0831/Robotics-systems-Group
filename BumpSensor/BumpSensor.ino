@@ -1,14 +1,17 @@
 #define EMIT_PIN   11
-#define BL A6
+#define BL 4
 #define BR 5
 
 unsigned long MaxBumpSensorTime = 0;
 
+
 void setup() {
   Serial.begin(9600);
   
-  pinMode (BL , INPUT_PULLUP);
+  pinMode (BL , INPUT);
   pinMode (BR , INPUT);
+  
+ 
 
   pinMode(EMIT_PIN, OUTPUT);  
   digitalWrite(EMIT_PIN, LOW);
@@ -17,29 +20,33 @@ void setup() {
 }
 
 void loop() {
-  int leftBumpValue = 1023- analogRead(BL); //Inverse Mapping
 
+  unsigned long BLElapsedTime = MeasureBumpSensor(BL);
+  int leftBumpValue = 1023 - map(BLElapsedTime, 0, MaxBumpSensorTime, 0 ,1023);
+  
   unsigned long BRElapsedTime = MeasureBumpSensor(BR);
-  int rightBumpValue = 1023 - map(BRElapsedTime, 0, MaxBumpSensorTime, 0, 1023); //Mapping digital value to discrete value
-
+  int rightBumpValue = 1023 - map(BRElapsedTime, 0, MaxBumpSensorTime, 0 ,1023); //Mapping digital value to discrete value
+  
+   
   Serial.print("Left Right Bump Sensor: ");
   Serial.print(leftBumpValue);
   Serial.print(",");
   Serial.println(rightBumpValue);
-
+ 
   delay(100); 
   
 }
 
 unsigned long MeasureBumpSensor(int SensorPin){
+  
   pinMode(SensorPin , OUTPUT);
   digitalWrite(SensorPin , HIGH);
   delay(10);
 
-  pinMode(BR , INPUT);
+  pinMode(SensorPin , INPUT);
 
   unsigned long StartTime = micros();
-  while( digitalRead(BR) == HIGH){
+  while( digitalRead(SensorPin) == HIGH){
     
   }
   
