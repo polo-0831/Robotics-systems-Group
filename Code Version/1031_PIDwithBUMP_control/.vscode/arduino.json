@@ -1,0 +1,5 @@
+{
+    "port": "COM8",
+    "board": "arduino:avr:leonardo",
+    "sketch": "PIDwithBUMP_control_1031.ino"
+}

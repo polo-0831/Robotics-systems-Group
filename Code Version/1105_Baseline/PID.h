@@ -104,7 +104,6 @@ class PID_c {
 
       // Calculate error signal.
       error = demand - measurement;
-      last_error = error;
 
       // P term, nice and easy
       p_term = p_gain * error;
@@ -120,6 +119,9 @@ class PID_c {
       // to last_error - error.  It depends on the
       // error signal sign in relation to the system.
       diff_error = (error - last_error) / float_dt;
+
+      last_error = error;
+      
       d_term = diff_error * d_gain;
 
       // Sometimes this needs to be - d_term.
