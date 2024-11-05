@@ -1,0 +1,5 @@
+{
+    "port": "COM8",
+    "board": "arduino:avr:leonardo",
+    "sketch": "1105_Baseline.ino"
+}

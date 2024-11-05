@@ -35,7 +35,7 @@ unsigned long speed_est_ts;
 unsigned long test_ts;
 unsigned long PID_update_previTime = 0;
 float a = 0.5; // parameter of low pass filter
-#define TASK_SPEED_DEMAND 5
+#define INIT_SPEED_DEMAND 5
 float l_demand = 0; // velocity demand
 float r_demand = 0;
 bool PID_Turning = false;
@@ -67,6 +67,11 @@ int state = STATE_CALIBRATE;
 // Time var
 unsigned long beep_stop_time;
 unsigned long CalibrateTime;
+unsigned long TaskTime;
+int diff_count, sync_count;
+
+// Control
+float accumulate_speed = 0;
 
 void setup()
 {
@@ -119,6 +124,7 @@ void setup()
 
 void loop()
 {
+
   checkBeep();
   BLElapsedTime = MeasureBumpSensor(BL_PIN);
   leftBumpValue = 1023 - map(BLElapsedTime, 0, MaxBumpSensorTime, 0, 1023); // Inverse Mapping
@@ -142,33 +148,38 @@ void loop()
       PID_Turning = true;
       state = STATE_PUSH;
       delay(10);
+      TaskTime = millis();
     }
     break;
   case STATE_PUSH:
-    if (leftBumpValue >= LeftCollide_thres && rightBumpValue <= RightCollide_thres) // box is leaning on the right
-    {
-      // turn right
-      l_demand = TASK_SPEED_DEMAND + 4;
-      r_demand = TASK_SPEED_DEMAND;
-    }
-    else if (leftBumpValue < LeftCollide_thres && rightBumpValue >= RightCollide_thres) // box is leaning on the left
-    {
-      // turn left
-      l_demand = TASK_SPEED_DEMAND;
-      r_demand = TASK_SPEED_DEMAND + 4;
-    }
-    else if (leftBumpValue >= LeftCollide_thres && rightBumpValue >= RightCollide_thres) // losing box
-    {
-      // go straight
-      l_demand = TASK_SPEED_DEMAND;
-      r_demand = TASK_SPEED_DEMAND;
-    }
-    else if (leftBumpValue < LeftCollide_thres && rightBumpValue < RightCollide_thres) // pushing box
-    {
-    }
+    // if (leftBumpValue >= LeftCollide_thres && rightBumpValue <= RightCollide_thres) // box is leaning on the right
+    // {
+    //   // turn right
+    //   l_demand = INIT_SPEED_DEMAND + Bumpvalue2Speed(leftBumpValue, LeftBump_Max);
+    //   r_demand = INIT_SPEED_DEMAND + Bumpvalue2Speed(rightBumpValue, RightBump_Max);
+    // }
+    // else if (leftBumpValue < LeftCollide_thres && rightBumpValue >= RightCollide_thres) // box is leaning on the left
+    // {
+    //   // turn left
+    //   l_demand = INIT_SPEED_DEMAND + Bumpvalue2Speed(leftBumpValue, LeftBump_Max);
+    //   r_demand = INIT_SPEED_DEMAND + Bumpvalue2Speed(rightBumpValue, RightBump_Max);
+    // }
+    // else if (leftBumpValue >= LeftCollide_thres && rightBumpValue >= RightCollide_thres) // losing box
+    // {
+    //   // go straight
+    //   l_demand = INIT_SPEED_DEMAND + Bumpvalue2Speed(leftBumpValue, LeftBump_Max);
+    //   r_demand = INIT_SPEED_DEMAND + Bumpvalue2Speed(rightBumpValue, RightBump_Max);
+    // }
+    // else if (leftBumpValue < LeftCollide_thres && rightBumpValue < RightCollide_thres) // pushing box
+    // {
+    // }
 
-    if (pose.x > 1000)
+    l_demand = INIT_SPEED_DEMAND + Bumpvalue2Speed(rightBumpValue);
+    r_demand = INIT_SPEED_DEMAND + Bumpvalue2Speed(leftBumpValue);
+
+    if (millis() - TaskTime > 10000) // 10s box pushing Task
     {
+      setBeep(200);
       state = STATE_STOP;
     }
     break;
@@ -182,10 +193,24 @@ void loop()
     break;
   }
 
-  Serial.print(leftBumpValue);
+  // Serial.print(leftBumpValue);
+  // Serial.print(",");
+  // Serial.print(rightBumpValue);
+  // Serial.print(",");
+  Serial.print(Bumpvalue2Speed(leftBumpValue));
   Serial.print(",");
-  Serial.println(rightBumpValue);
+  Serial.print(Bumpvalue2Speed(rightBumpValue));
+  Serial.print("\n");
 }
+
+float Bumpvalue2Speed(float bump_value)
+{
+  float diff_speed = -0.02 * bump_value + 16;
+  if (diff_speed > 5)
+    diff_speed = 5;
+  return diff_speed;
+}
+
 void encoder_Cal()
 {
 
@@ -265,6 +290,21 @@ ISR(TIMER3_COMPA_vect)
 
   encoder_Cal();
 
+  if (state == STATE_PUSH)
+  {
+    if ((leftBumpValue < LeftCollide_thres && rightBumpValue >= RightCollide_thres) || (leftBumpValue >= LeftCollide_thres && rightBumpValue <= RightCollide_thres))
+    {
+      // if box is leaning on one single side
+      diff_count++;
+      sync_count = 0;
+    }
+    else if ((leftBumpValue >= LeftCollide_thres && rightBumpValue >= RightCollide_thres) || (leftBumpValue < LeftCollide_thres && rightBumpValue < RightCollide_thres))
+    {
+      // if box is being pushing or doesn't being pushed.
+      sync_count++;
+      diff_count = 0;
+    }
+  }
   if (count % 3 == 0)
   {
     if (PID_Turning)
