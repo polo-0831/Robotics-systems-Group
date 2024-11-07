@@ -15,8 +15,7 @@ PID_c right_pid;
 #define BR_PIN 5
 
 // Bump sensor
-unsigned long LeftMaxBumpSensorTime = 0;
-unsigned long RightMaxBumpSensorTime = 0;
+unsigned long MaxBumpSensorTime = 0;
 unsigned long BLElapsedTime;
 unsigned long BRElapsedTime;
 int leftBumpValue;
@@ -128,10 +127,10 @@ void loop()
 
   checkBeep();
   BLElapsedTime = MeasureBumpSensor(BL_PIN, 1);
-  leftBumpValue = 1023 - map(BLElapsedTime, 0, LeftMaxBumpSensorTime, 0, 1023); // Inverse Mapping
+  leftBumpValue = 1023 - map(BLElapsedTime, 0, MaxBumpSensorTime, 0, 1023); // Inverse Mapping
 
   BRElapsedTime = MeasureBumpSensor(BR_PIN, 2);
-  rightBumpValue = 1023 - map(BRElapsedTime, 0, RightMaxBumpSensorTime, 0, 1023); // Mapping digital value to discrete value
+  rightBumpValue = 1023 - map(BRElapsedTime, 0, MaxBumpSensorTime, 0, 1023); // Mapping digital value to discrete value
 
   leftBumpValue < LeftBump_Min ? LeftBump_Min = leftBumpValue : LeftBump_Min;
   leftBumpValue > LeftBump_Max ? LeftBump_Max = leftBumpValue : LeftBump_Max;
@@ -339,15 +338,9 @@ unsigned long MeasureBumpSensor(int SensorPin, int Direction)
   unsigned long EndTime = micros();
   unsigned long ElapsedTime = EndTime - StartTime;
 
-  if (Direction == 1)
-    if (ElapsedTime >= LeftMaxBumpSensorTime)
+     if (ElapsedTime >= MaxBumpSensorTime)
     {
-      LeftMaxBumpSensorTime = ElapsedTime;
-    }
-  else if (Direction == 2)
-     if (ElapsedTime >= RightMaxBumpSensorTime)
-    {
-      RightMaxBumpSensorTime = ElapsedTime;
+      MaxBumpSensorTime = ElapsedTime;
     }
 
   return ElapsedTime;
