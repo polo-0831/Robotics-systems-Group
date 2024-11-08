@@ -114,7 +114,7 @@ void setup()
   Serial.begin(9600);
   delay(1500);
   Serial.println("***RESET***");
-//  setupTimer3();
+  setupTimer3();
 
   // must put it at the end
   delay(2000);
