@@ -15,17 +15,20 @@ PID_c right_pid;
 #define BR_PIN 5
 
 // Bump sensor
-unsigned long MaxBumpSensorTime = 0;
+unsigned long L_MaxBumpSensorTime = 1;
+unsigned long R_MaxBumpSensorTime = 1;
+unsigned long L_MinBumpSensorTime = 9999;
+unsigned long R_MinBumpSensorTime = 9999;
 unsigned long BLElapsedTime;
 unsigned long BRElapsedTime;
-int leftBumpValue;
-int rightBumpValue;
-int LeftBump_Max;
-int LeftBump_Min;
-int RightBump_Max;
-int RightBump_Min;
-int LeftCollide_thres;
-int RightCollide_thres;
+float leftBumpValue;
+float rightBumpValue;
+float LeftBump_Max;
+float LeftBump_Min;
+float RightBump_Max;
+float RightBump_Min;
+float LeftCollide_thres;
+float RightCollide_thres;
 
 // Timer
 volatile boolean DEBUG_LED_STATE = false;
@@ -111,26 +114,25 @@ void setup()
   Serial.begin(9600);
   delay(1500);
   Serial.println("***RESET***");
-  setupTimer3();
+//  setupTimer3();
 
   // must put it at the end
   delay(2000);
-  left_pid.reset();
-  right_pid.reset();
+
   setBeep(200);
+//  delay(500);
 
   CalibrateTime = millis();
 }
 
 void loop()
 {
-
   checkBeep();
-  BLElapsedTime = MeasureBumpSensor(BL_PIN);
-  leftBumpValue = 1023 - map(BLElapsedTime, 0, MaxBumpSensorTime, 0, 1023); // Inverse Mapping
+  BLElapsedTime = MeasureBumpSensor(BL_PIN, L_MaxBumpSensorTime, L_MinBumpSensorTime);
+  leftBumpValue = 1023 - map(BLElapsedTime, L_MinBumpSensorTime, L_MaxBumpSensorTime, 0, 1023); // Inverse Mapping
 
-  BRElapsedTime = MeasureBumpSensor(BR_PIN);
-  rightBumpValue = 1023 - map(BRElapsedTime, 0, MaxBumpSensorTime, 0, 1023); // Mapping digital value to discrete value
+  BRElapsedTime = MeasureBumpSensor(BR_PIN, R_MaxBumpSensorTime, R_MinBumpSensorTime);
+  rightBumpValue = 1023 - map(BRElapsedTime, R_MinBumpSensorTime, R_MaxBumpSensorTime, 0, 1023); // Mapping digital value to discrete value
 
   leftBumpValue < LeftBump_Min ? LeftBump_Min = leftBumpValue : LeftBump_Min;
   leftBumpValue > LeftBump_Max ? LeftBump_Max = leftBumpValue : LeftBump_Max;
@@ -142,9 +144,11 @@ void loop()
   switch (state)
   {
   case STATE_CALIBRATE:
-    PID_Turning = false;
+  
     if (millis() - CalibrateTime > 3000) // 3s for calibrate bump sensor
     {
+      left_pid.reset();
+      right_pid.reset();
       PID_Turning = true;
       state = STATE_PUSH;
       delay(10);
@@ -193,14 +197,20 @@ void loop()
     break;
   }
 
-  // Serial.print(leftBumpValue);
-  // Serial.print(",");
-  // Serial.print(rightBumpValue);
-  // Serial.print(",");
-  Serial.print(Bumpvalue2Speed(leftBumpValue));
-  Serial.print(",");
-  Serial.print(Bumpvalue2Speed(rightBumpValue));
+   Serial.print(leftBumpValue);
+   Serial.print(",");
+   Serial.print(rightBumpValue);
+//   Serial.print(",");
+//  Serial.print(Bumpvalue2Speed(leftBumpValue));
+//  Serial.print(",");
+//  Serial.print(Bumpvalue2Speed(rightBumpValue));
   Serial.print("\n");
+}
+
+
+float bumpValueMap(unsigned long ElapsedTime, unsigned long MinBumpSensorTime, unsigned long MaxBumpSensorTime, float MinValue, float MaxValue){
+  float BumpValue = (float)(ElapsedTime * (MaxValue - MinValue) / (MinBumpSensorTime - MaxBumpSensorTime));
+  return BumpValue;
 }
 
 float Bumpvalue2Speed(float bump_value)
@@ -324,7 +334,9 @@ ISR(TIMER3_COMPA_vect)
   }
 }
 
-unsigned long MeasureBumpSensor(int SensorPin)
+unsigned long MeasureBumpSensor(int SensorPin, unsigned long& MaxBumpSensorTime, unsigned long& MinBumpSensorTime)
+
+//unsigned long MeasureBumpSensor(int SensorPin)
 {
 
   pinMode(SensorPin, OUTPUT);
@@ -341,10 +353,8 @@ unsigned long MeasureBumpSensor(int SensorPin)
   unsigned long EndTime = micros();
   unsigned long ElapsedTime = EndTime - StartTime;
 
-  if (ElapsedTime >= MaxBumpSensorTime)
-  {
-    MaxBumpSensorTime = ElapsedTime;
-  }
+  ElapsedTime < MinBumpSensorTime ? MinBumpSensorTime = ElapsedTime : MinBumpSensorTime;
+  ElapsedTime > MaxBumpSensorTime ? MaxBumpSensorTime = ElapsedTime : MaxBumpSensorTime;
 
   return ElapsedTime;
 }
