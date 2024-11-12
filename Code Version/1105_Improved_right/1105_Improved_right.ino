@@ -126,10 +126,10 @@ void loop()
 {
 
   checkBeep();
-  BLElapsedTime = MeasureBumpSensor(BL_PIN, 1);
+  BLElapsedTime = MeasureBumpSensor(BL_PIN);
   leftBumpValue = 1023 - map(BLElapsedTime, 0, MaxBumpSensorTime, 0, 1023); // Inverse Mapping
 
-  BRElapsedTime = MeasureBumpSensor(BR_PIN, 2);
+  BRElapsedTime = MeasureBumpSensor(BR_PIN);
   rightBumpValue = 1023 - map(BRElapsedTime, 0, MaxBumpSensorTime, 0, 1023); // Mapping digital value to discrete value
 
   leftBumpValue < LeftBump_Min ? LeftBump_Min = leftBumpValue : LeftBump_Min;
@@ -321,7 +321,7 @@ ISR(TIMER3_COMPA_vect)
   }
 }
 
-unsigned long MeasureBumpSensor(int SensorPin, int Direction)
+unsigned long MeasureBumpSensor(int SensorPin)
 {
 
   pinMode(SensorPin, OUTPUT);
