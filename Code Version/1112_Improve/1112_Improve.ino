@@ -178,9 +178,23 @@ void loop()
     // {
     // }
 
-    l_demand = INIT_SPEED_DEMAND + Bumpvalue2Speed(rightBumpValue);
-    r_demand = INIT_SPEED_DEMAND + Bumpvalue2Speed(leftBumpValue);
+    l_demand = INIT_SPEED_DEMAND + Bumpvalue2Speed(rightBumpValue) + accumulate_speed;
+    r_demand = INIT_SPEED_DEMAND + Bumpvalue2Speed(leftBumpValue) + accumulate_speed;
 
+    /******************* set accumulate_speed ******************/
+//    if (diff_count > 100) // 1s
+//    {
+//      accumulate_speed = 3;
+//      diff_count = 0;
+//    }
+
+    if (abs(pose.theta) < M_PI / 15 && accumulate_speed != 0) // back to normal
+    {
+      accumulate_speed = 0;
+//      state = STATE_STOP;
+    }
+    /************************** end *****************************/
+    
 //    if (millis() - TaskTime > 10000) // 10s box pushing Task
 //    {
 //      setBeep(200);
@@ -197,11 +211,15 @@ void loop()
     break;
   }
 
-   Serial.print(leftBumpValue);
-   Serial.print(",");
-   Serial.print(rightBumpValue);
+//   Serial.print(leftBumpValue);
 //   Serial.print(",");
+//   Serial.print(rightBumpValue);
+//  Serial.print(",");
 //  Serial.print(Bumpvalue2Speed(leftBumpValue));
+  Serial.print(pose.theta);
+  Serial.print(",");
+  Serial.print(accumulate_speed);
+
 //  Serial.print(",");
 //  Serial.print(Bumpvalue2Speed(rightBumpValue));
   Serial.print("\n");
@@ -300,21 +318,24 @@ ISR(TIMER3_COMPA_vect)
 
   encoder_Cal();
 
-  if (state == STATE_PUSH)
+  if (state == STATE_PUSH && abs(pose.theta) > 0)
   {
-    if ((leftBumpValue < LeftCollide_thres && rightBumpValue >= RightCollide_thres) || (leftBumpValue >= LeftCollide_thres && rightBumpValue <= RightCollide_thres))
-    {
-      // if box is leaning on one single side
-      diff_count++;
-      sync_count = 0;
+    if(pose.theta > 0) {
+      if (accumulate_speed < 0)
+        accumulate_speed = 0;
+      accumulate_speed += 0.01;
+      if (accumulate_speed > 2)
+        accumulate_speed = 2;
     }
-    else if ((leftBumpValue >= LeftCollide_thres && rightBumpValue >= RightCollide_thres) || (leftBumpValue < LeftCollide_thres && rightBumpValue < RightCollide_thres))
-    {
-      // if box is being pushing or doesn't being pushed.
-      sync_count++;
-      diff_count = 0;
+    else if(pose.theta < 0){
+      if (accumulate_speed > 0)
+        accumulate_speed = 0;
+      accumulate_speed -= 0.01;
+      if (accumulate_speed < -2)
+        accumulate_speed = -2;
     }
   }
+  
   if (count % 3 == 0)
   {
     if (PID_Turning)
